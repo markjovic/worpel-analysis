@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Worpel history</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --deep:#00435c; --sea:#005979; --chalk:#f3f6f7; --paper:#ffffff; --ink:#14232a; --muted:#5b6d75; --line:#d6e0e4;
+  --gold:#e3b23c; --bar:#2b8aa8;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --deep:#06293a; --chalk:#0d171c; --paper:#132229; --ink:#e4ecef; --muted:#9db0b8; --line:#26383f; --bar:#4fb3d4; }
+}
+:root[data-theme="dark"]{ --deep:#06293a; --chalk:#0d171c; --paper:#132229; --ink:#e4ecef; --muted:#9db0b8; --line:#26383f; --bar:#4fb3d4; }
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+body{ margin:0; background:var(--chalk); color:var(--ink); font:16px/1.5 var(--body); }
+header{ background:var(--deep); color:#eef5f7; padding:24px 20px 20px; }
+.wrap{ max-width:1100px; margin:0 auto; }
+h1{ font:700 clamp(2.2rem,6vw,3.4rem)/0.95 var(--cond); margin:0; }
+header p{ margin:8px 0 0; max-width:62ch; color:#c7dbe2; }
+#status{ margin-top:10px; font-size:.9rem; color:#c7dbe2; } #status.warn{ color:#ffd58a; }
+main{ padding:18px 20px 40px; }
+.bar{ display:flex; flex-wrap:wrap; gap:12px 20px; align-items:flex-end; margin-bottom:16px; }
+.seg{ display:flex; border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--paper); }
+.seg button{ font:600 1rem var(--cond); border:0; background:transparent; color:var(--ink); padding:7px 14px; cursor:pointer; }
+.seg button + button{ border-left:1px solid var(--line); }
+.seg button[aria-pressed="true"]{ background:var(--sea); color:#fff; }
+label.group{ display:flex; flex-direction:column; gap:4px; font-size:.8rem; color:var(--muted); }
+select,input[type=search]{ font:500 .95rem var(--body); color:var(--ink); background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:7px 9px; }
+.btn{ font:700 1rem var(--cond); background:var(--sea); color:#fff; border:0; border-radius:6px; padding:8px 14px; cursor:pointer; }
+button:focus-visible,select:focus-visible,input:focus-visible,th:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.today{ background:var(--paper); border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:6px; padding:12px 14px; margin-bottom:18px; display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; }
+.today b{ font:700 1.4rem/1 var(--cond); }
+.layout{ display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:20px; align-items:start; }
+@media (max-width:860px){ .layout{ grid-template-columns:1fr; } }
+.tablewrap{ overflow:auto; max-height:640px; background:var(--paper); border:1px solid var(--line); border-radius:6px; }
+table{ border-collapse:collapse; width:100%; font-size:.9rem; }
+th,td{ padding:5px 8px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+th{ position:sticky; top:0; background:var(--paper); font:600 .82rem var(--cond); color:var(--muted); cursor:pointer; }
+td.l,th.l{ text-align:left; } td.name{ font-weight:600; } td.unk{ color:var(--muted); font-style:italic; }
+.panel{ background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:12px 14px; margin-bottom:16px; }
+.panel h2{ font:700 1.25rem/1.1 var(--cond); margin:0 0 8px; }
+.bars{ display:grid; grid-template-columns:auto 1fr auto; gap:3px 8px; align-items:center; font-size:.85rem; }
+.bars .b{ height:11px; background:var(--bar); border-radius:2px; }
+.rep{ font-size:.88rem; margin:0; padding-left:18px; }
+.count{ font-size:.9rem; color:var(--muted); margin:0 0 8px; }
+@media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Worpel history</h1>
+    <p>Every past Worpel and Worpel Legends mystery player, recorded from playworpel.com each day. Upcoming answers are never stored here.</p>
+    <div id="status" role="status">Loading&hellip;</div>
+  </div>
+</header>
+<main class="wrap">
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Game" id="mode"><button type="button" data-v="worpel" aria-pressed="true">Worpel</button><button type="button" data-v="legends" aria-pressed="false">Legends</button></div>
+    <label class="group">Club<select id="club"><option value="">All clubs</option></select></label>
+    <label class="group">Position<select id="pos"><option value="">All positions</option></select></label>
+    <label class="group">Player<input type="search" id="q" placeholder="Search by name"></label>
+  </div>
+  <div class="today" id="today"></div>
+  <div class="layout">
+    <div>
+      <p class="count" id="count"></p>
+      <div class="tablewrap"><table><thead><tr id="head"></tr></thead><tbody id="rows"></tbody></table></div>
+    </div>
+    <div>
+      <div class="panel"><h2>By club</h2><div class="bars" id="byClub"></div></div>
+      <div class="panel"><h2>By position</h2><div class="bars" id="byPos"></div></div>
+      <div class="panel"><h2>Picked more than once</h2><ul class="rep" id="repeats"></ul></div>
+    </div>
+  </div>
+</main>
+<script>
+(() => {
+  // Club and position tables as defined in the game's own code.
+  const CLUBS = {1:'ADE',2:'BRL',3:'CAR',4:'COL',5:'ESS',6:'FRE',7:'GCS',8:'GEE',9:'GWS',10:'HAW',11:'MEL',12:'NTH',13:'PTA',14:'RIC',15:'STK',16:'SYD',17:'WBD',18:'WCE'};
+  const POS = {KEY_DEFENDER:'Key Def',MEDIUM_DEFENDER:'Med Def',RUCK:'Ruck',MIDFIELDER:'Mid',MIDFIELDER_FORWARD:'Mid-Fwd',MEDIUM_FORWARD:'Med Fwd',KEY_FORWARD:'Key Fwd'};
+  const st = document.getElementById('status');
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const fail = m => { st.className = 'warn'; st.textContent = m; };
+  const cache = {};
+  const state = { mode: 'worpel', club: '', pos: '', q: '', sortKey: 'level', sortDir: -1, revealed: false };
+
+  const nameOf = p => p ? `${p.givenName ?? ''} ${p.surname ?? ''}`.trim() : null;
+  const ageAt = (dob, date) => { if (!dob) return null; const [y, m, d] = dob.split('-').map(Number), [Y, M, D] = date.split('-').map(Number); return Y - y - ((M < m || (M === m && D < d)) ? 1 : 0); };
+
+  function rowsFor(h) {
+    return Object.values(h.entries).map(e => {
+      const p = e.player;
+      return { level: e.level, date: e.date, id: e.playerId, name: nameOf(p), club: p ? CLUBS[p.teamId] ?? `#${p.teamId}` : '', pos: p ? POS[p.position] ?? p.position ?? '' : '',
+        debut: p?.debutYear ?? null, last: p?.lastSeason ?? null, ht: p?.heightCm ?? null, age: p ? ageAt(p.dateOfBirth, e.date) : null,
+        num: p?.jumperNumber ?? null, prem: p?.premierships ?? null, teams: p?.teams ?? null, isToday: e.level === h.todayLevel };
+    });
+  }
+
+  function cols(mode) {
+    const base = [['level', 'Level'], ['date', 'Date', 'l'], ['name', 'Player', 'l name'], ['club', 'Club', 'l'], ['pos', 'Pos', 'l']];
+    return mode === 'legends'
+      ? [...base, ['debut', 'Debut'], ['last', 'Last'], ['ht', 'Ht'], ['num', '#'], ['prem', 'Flags'], ['teams', 'Clubs']]
+      : [...base, ['debut', 'Debut'], ['ht', 'Ht'], ['age', 'Age then'], ['num', '#']];
+  }
+
+  function bars(el, counts) {
+    const list = Object.entries(counts).sort((a, b) => b[1] - a[1]); const max = Math.max(1, ...list.map(x => x[1]));
+    el.innerHTML = list.map(([k, n]) => `<span>${esc(k)}</span><div class="b" style="width:${(n / max * 100).toFixed(1)}%"></div><span>${n}</span>`).join('');
+  }
+
+  function render() {
+    const h = cache[state.mode]; if (!h) return;
+    const all = rowsFor(h);
+    const past = all.filter(r => !r.isToday || state.revealed);
+    // today card
+    const t = all.find(r => r.isToday);
+    document.getElementById('today').innerHTML = t
+      ? (state.revealed
+          ? `<span>Today, level ${t.level}:</span> <b>${esc(t.name ?? `player #${t.id}`)}</b> <span>${esc(t.club)} ${esc(t.pos)}</span>`
+          : `<span>Today is level ${t.level}. Its answer is hidden.</span> <button class="btn" type="button" id="reveal">Show today&rsquo;s answer</button>`)
+      : `<span>Today's level isn't recorded yet.</span>`;
+    const rb = document.getElementById('reveal'); if (rb) rb.onclick = () => { state.revealed = true; render(); };
+    // filters
+    const q = state.q.trim().toLowerCase();
+    const rows = past.filter(r => (!state.club || r.club === state.club) && (!state.pos || r.pos === state.pos) && (!q || (r.name ?? '').toLowerCase().includes(q)));
+    const k = state.sortKey;
+    rows.sort((a, b) => { const va = a[k], vb = b[k]; if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+      return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * state.sortDir; });
+    const C = cols(state.mode);
+    document.getElementById('head').innerHTML = C.map(([key, lab, cls = '']) => `<th class="${cls.includes('l') ? 'l' : ''}" data-k="${key}" tabindex="0"${key === k ? ` aria-sort="${state.sortDir < 0 ? 'descending' : 'ascending'}"` : ''}>${lab}${key === k ? (state.sortDir < 0 ? ' \u2193' : ' \u2191') : ''}</th>`).join('');
+    document.getElementById('rows').innerHTML = rows.map(r => '<tr>' + C.map(([key, , cls = '']) => {
+      if (key === 'name' && !r.name) return `<td class="l unk">Not in current player list (#${r.id})</td>`;
+      const v = r[key]; return `<td class="${cls}">${v == null ? '' : esc(v)}</td>`;
+    }).join('') + '</tr>').join('');
+    document.getElementById('count').textContent = `${rows.length.toLocaleString()} of ${past.length.toLocaleString()} recorded levels.`;
+    // stats over the filtered set
+    const byClub = {}, byPos = {}, byPlayer = {};
+    for (const r of rows) { if (r.club) byClub[r.club] = (byClub[r.club] || 0) + 1; if (r.pos) byPos[r.pos] = (byPos[r.pos] || 0) + 1; (byPlayer[r.id] ||= []).push(r); }
+    bars(document.getElementById('byClub'), byClub); bars(document.getElementById('byPos'), byPos);
+    const reps = Object.values(byPlayer).filter(x => x.length > 1).sort((a, b) => b.length - a.length);
+    document.getElementById('repeats').innerHTML = reps.length
+      ? reps.map(x => `<li>${esc(x[0].name ?? `player #${x[0].id}`)}: ${x.length} times (levels ${x.map(r => r.level).sort((a, b) => a - b).join(', ')})</li>`).join('')
+      : '<li>None in this selection.</li>';
+  }
+
+  function fillFilters() {
+    const h = cache[state.mode]; const rows = rowsFor(h);
+    const clubs = [...new Set(rows.map(r => r.club).filter(Boolean))].sort(), poss = [...new Set(rows.map(r => r.pos).filter(Boolean))].sort();
+    document.getElementById('club').innerHTML = '<option value="">All clubs</option>' + clubs.map(c => `<option>${esc(c)}</option>`).join('');
+    document.getElementById('pos').innerHTML = '<option value="">All positions</option>' + poss.map(c => `<option>${esc(c)}</option>`).join('');
+    state.club = ''; state.pos = '';
+  }
+
+  async function load(mode) {
+    if (!cache[mode]) {
+      try { const r = await fetch(`data/${mode}-history.json`, { cache: 'no-cache' }); if (!r.ok) throw new Error(`HTTP ${r.status}`); cache[mode] = await r.json(); }
+      catch (e) { fail(`${mode} history couldn't be loaded (${e.message}).`); return false; }
+    }
+    const h = cache[mode], n = Object.keys(h.entries).length, missing = Object.values(h.entries).filter(e => !e.player).length;
+    const when = h.updatedAt ? new Date(h.updatedAt).toLocaleString('en-AU', { dateStyle: 'medium', timeStyle: 'short' }) : 'unknown';
+    st.className = ''; st.textContent = `${n.toLocaleString()} levels recorded, last updated ${when}.${missing ? ` ${missing} recorded levels name players no longer in the game's player list, so only their ID is shown.` : ''}`;
+    return true;
+  }
+
+  document.getElementById('mode').addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b || b.dataset.v === state.mode) return;
+    document.querySelectorAll('#mode button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    state.mode = b.dataset.v; state.revealed = false; state.sortKey = 'level'; state.sortDir = -1;
+    if (await load(state.mode)) { fillFilters(); render(); }
+  });
+  document.getElementById('club').addEventListener('change', e => { state.club = e.target.value; render(); });
+  document.getElementById('pos').addEventListener('change', e => { state.pos = e.target.value; render(); });
+  document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; render(); });
+  document.getElementById('head').addEventListener('click', e => {
+    const k = e.target.closest('th')?.dataset.k; if (!k) return;
+    if (k === state.sortKey) state.sortDir *= -1; else { state.sortKey = k; state.sortDir = ['name', 'club', 'pos', 'date'].includes(k) ? 1 : -1; }
+    render();
+  });
+  document.getElementById('head').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.click(); } });
+
+  load('worpel').then(ok => { if (ok) { fillFilters(); render(); } }).catch(e => fail(`Page error: ${e.message}`));
+})();
+</script>
+</body>
+</html>

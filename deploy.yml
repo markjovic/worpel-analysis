@@ -1,0 +1,124 @@
+# Records the Worpel and Worpel Legends mystery-player history up to and including today, commits it,
+# then publishes the site to GitHub Pages. Levels after today are never written to the repository.
+# Runs daily after the game's level rollover in Melbourne, on every upload to main, and on demand.
+name: Record history and deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '10 15 * * *'   # 02:10 AEDT / 01:10 AEST, after the game rolls over to the new level
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  BASE: https://playworpel.com/data
+  UA: "Mozilla/5.0 (compatible; worpel-analysis archive; https://github.com/markjovic/worpel-analysis)"
+
+jobs:
+  record-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Fetch source files
+        run: |
+          set -euo pipefail
+          mkdir -p src data
+          for f in worpel.json worpel_levels.json legends.json legends_levels.json; do
+            curl -fsSL --retry 3 --retry-delay 15 -A "$UA" "$BASE/$f" -o "src/$f"
+            echo "$f: $(wc -c < "src/$f") bytes"
+          done
+
+      - name: Record history up to today
+        env:
+          TZ: Australia/Melbourne
+        run: |
+          set -euo pipefail
+          node <<'EOF'
+          const fs = require('fs');
+          const DAY = 864e5;
+          // Same level formulas the game uses (local Melbourne time).
+          const MODES = [
+            { key: 'worpel',  players: 'src/worpel.json',  levels: 'src/worpel_levels.json',  epoch: 'Apr 4 2022',  offset: 14 },
+            { key: 'legends', players: 'src/legends.json', levels: 'src/legends_levels.json', epoch: 'Sep 13 2022', offset: 0 },
+          ];
+          const pad = n => String(n).padStart(2, '0');
+          const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          let failed = false;
+          for (const m of MODES) {
+            const rawPlayers = JSON.parse(fs.readFileSync(m.players, 'utf8'));
+            const levels = JSON.parse(fs.readFileSync(m.levels, 'utf8'));
+            const players = Array.isArray(rawPlayers) ? Object.fromEntries(rawPlayers.map(p => [p.playerId, p])) : rawPlayers;
+            if (!Object.keys(players).length || !Object.keys(levels).length) { console.log(`::error::${m.key}: empty players or levels file`); failed = true; continue; }
+            const today = Math.ceil(Math.abs(new Date() - new Date(m.epoch)) / DAY) + m.offset;
+            if (levels[today] === undefined) { console.log(`::error::${m.key}: today's level ${today} is not in the levels file`); failed = true; continue; }
+            const path = `data/${m.key}-history.json`;
+            const hist = fs.existsSync(path) ? JSON.parse(fs.readFileSync(path, 'utf8')) : { entries: {} };
+            let added = 0, missing = 0, changed = 0;
+            for (const [k, pid] of Object.entries(levels)) {
+              const L = +k;
+              if (L > today) continue;                       // never store future answers
+              const prev = hist.entries[L];
+              const p = players[pid] || null;
+              if (prev && prev.playerId === pid) {
+                if (!prev.player && p) prev.player = p;      // fill a gap if the player reappears
+                continue;
+              }
+              if (prev && prev.playerId !== pid) { console.log(`::warning::${m.key} level ${L} changed from player ${prev.playerId} to ${pid}; keeping the original`); changed++; continue; }
+              const d = new Date(m.epoch); d.setDate(d.getDate() + L - m.offset - 1);
+              hist.entries[L] = { level: L, date: ymd(d), playerId: pid, player: p };
+              added++;
+            }
+            for (const e of Object.values(hist.entries)) if (!e.player) missing++;
+            hist.mode = m.key; hist.todayLevel = today; hist.updatedAt = new Date().toISOString();
+            fs.writeFileSync(path, JSON.stringify(hist));
+            const count = Object.keys(hist.entries).length;
+            console.log(`${m.key}: today is level ${today}; ${added} added; ${count} levels recorded; ${missing} with no player details; ${changed} changed upstream.`);
+            if (missing) console.log(`::warning::${m.key}: ${missing} recorded levels point to players not in the current player file`);
+          }
+          if (failed) process.exit(1);
+          EOF
+
+      - name: Commit history
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then echo "No changes to commit"; else
+            git commit -m "Record history $(TZ=Australia/Melbourne date +%F)"
+            git push
+          fi
+
+      - name: Build site
+        run: |
+          set -euo pipefail
+          if [ ! -f index.html ]; then echo "::error::index.html is missing from the repository"; exit 1; fi
+          mkdir -p _site
+          cp index.html _site/
+          cp -r data _site/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
